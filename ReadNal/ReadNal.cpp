@@ -5,34 +5,30 @@
 #include <fstream>
 #include <vector>
 #include <stdint.h>
+#include <istream>
 
 using namespace std;
 
 
-// Функция для поиска подстроки в строке
-// + поиск позиции, с которой начинается подстрока
-int pos(char* s, char* c, int n)
-{
-    int i, j; // Счетчики для циклов
-    int lenC, lenS; // Длины строк
-
-    //Находим размеры строки исходника и искомого
-    for (lenC = 0; c[lenC]; lenC++);
-    for (lenS = 0; s[lenS]; lenS++);
-
-    for (i = 0; i <= lenS - lenC; i++) // Пока есть возможность поиска
-    {
-        for (j = 0; s[i + j] == c[j]; j++); // Проверяем совпадение посимвольно
-        // Если посимвольно совпадает по длине искомого
-        // Вернем из функции номер ячейки, откуда начинается совпадение
-        // Учитывать 0-терминатор  ( '\0' )
-        if (j - lenC == 1 && i == lenS - lenC && !(n - 1)) return i;
-        if (j == lenC)
-            if (n - 1) n--;
-            else return i;
+int blocktoint(char* input, int n) {
+    char b[4];
+    string strres;
+    stringstream stream;
+    for (int i = n; i < n + 4; i++) {
+        b[i - n] = input[i];
+        if (input[i] < 0) {
+            stream << std::setw(2) << std::setfill('0') << hex
+                << (int)input[i] + 256;  // как тут получается отрицательное значение? 
+        }
+        else {
+            stream << std::setw(2) << std::setfill('0') << hex
+                << (int)input[i];
+        }
     }
-    //Иначе вернем -1 как результат отсутствия подстроки
-    return -1;
+    strres = stream.str();
+    int res = stoi(strres, 0, 16);
+    
+    return res;
 }
 
 string readNal(string input, int startPosition, int &size) // считывание блока нал из входного потока с введённого символа
@@ -92,8 +88,8 @@ void main()
     //}
 
 
-    std::ifstream is("C:/Users/ami/Desktop/cats/segment1.fmp4", std::ifstream::binary); // C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence4.m4s
-    if (is) {
+    std::ifstream is("C:/Users/ami/Desktop/cats/segment1.fmp4", ios::binary); // C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence4.m4s
+    if (is.is_open()) {
         // get length of file:
         is.seekg(0, is.end); // ставим маркер в конец 
         int length = is.tellg(); // получаем позицию маркера, это длина файла
@@ -111,23 +107,19 @@ void main()
             std::cout << "error: only " << is.gcount() << " could be read \n";
         is.close();
 
-
-
-        std::string str;
-        char* writable = new char[str.size() + 1];
-        std::copy(str.begin(), str.end(), writable);
-        writable[str.size()] = '\0';
-
         // 6d646174 == 109 100 97 116 == mdat
-
-        char* psh;
-        char mdat[] = "mdat";
-
-        psh = strstr(writable, mdat);
-
-        for (int i = 0; i < length/1000; i++) {
-            cout << std::hex << std::setw(2) << std::setfill('0')
-                 << (int)psh[i];
+        int n = 0;
+        char name[4];
+        char mdat[4] = { 'm', 'd', 'a', 't' };
+        bool flag = true;
+        while (flag) {
+            int size = blocktoint(data, n);
+            name[0] = data[n + 4];
+            name[1] = data[n + 5];
+            name[2] = data[n + 6];
+            name[3] = data[n + 7];
+            n += size;
+            if (!strncmp(name, mdat, 4)) flag = false;
         }
 
         // ...buffer contains the entire file...
