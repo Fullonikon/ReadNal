@@ -10,18 +10,13 @@
 using namespace std;
 
 
-int blocktoint(char* input, int startPosition) {  // парсинг размера
+int blocktoint(uint8_t* input, int startPosition) {  // парсинг размера
     string strres;
     stringstream stream;
     for (int i = startPosition; i < startPosition + 4; i++) {
-        if (input[i] < 0) {
-            stream << std::setw(2) << std::setfill('0') << hex
-                << (int)input[i] + 256;  // при получении отрицательного значения происходит неправильная конвертация значения
-        }
-        else {
-            stream << std::setw(2) << std::setfill('0') << hex // переводим в 16-ричное значение
-                << (int)input[i];
-        }
+        
+         stream << std::setw(2) << std::setfill('0') << hex // переводим в 16-ричное значение
+              << (int)input[i];
     }
     strres = stream.str();
     int res = stoi(strres, 0, 16); // переводим результат в число
@@ -29,20 +24,13 @@ int blocktoint(char* input, int startPosition) {  // парсинг размер
     return res;
 }
 
-int readNalType(char* input, int startPosition) // для чтения типа нал юнита (нужна определённая часть байта)
+int readNalType(uint8_t* input, int startPosition) // для чтения типа нал юнита (нужна определённая часть байта)
 {
     string strres;
     stringstream stream;
-    for (int i = startPosition; i < startPosition + 1; i++) { // не + 4, а + 1 
-        if (input[i] < 0) {
+    //std bitset
             stream << std::setw(2) << std::setfill('0') << hex
-                << (int)input[i] + 256;
-        }
-        else {
-            stream << std::setw(2) << std::setfill('0') << hex
-                << (int)input[i];
-        }
-    }
+                << (int)input[startPosition];
     strres = stream.str();
     strres = strres[1]; // тут лежит тип
     int res = stoi(strres, 0, 16);
@@ -52,18 +40,18 @@ int readNalType(char* input, int startPosition) // для чтения типа 
 
 void main()
 {
-    std::ifstream is("C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence3.m4s", ios::binary); // C:/Users/ami/Desktop/cats/segment3.fmp4
+    std::ifstream is("C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence5.m4s", ios::binary); // C:/Users/ami/Desktop/cats/segment3.fmp4
     if (is.is_open()) {
         // get length of file:
         is.seekg(0, is.end); // ставим маркер в конец 
         int length = is.tellg(); // получаем позицию маркера, это длина файла
         is.seekg(0, is.beg); // ставим маркер в начало
 
-        char* data = new char[length];
+        uint8_t* data = new uint8_t[length];
 
         std::cout << "Reading " << length << " characters... ";
         // читаем данные
-        is.read(data, length);
+        is.read((char*)data, length);
 
         if (is)
             std::cout << "all characters read successfully. \n";
@@ -72,8 +60,8 @@ void main()
         is.close();
 
         int n = 0;
-        char name[4];
-        char mdat[4] = { 'm', 'd', 'a', 't' };
+        uint8_t name[4];
+        uint8_t mdat[4] = { 'm', 'd', 'a', 't' };
         bool flag = true;
         while (flag) {
             int size = blocktoint(data, n);
@@ -82,7 +70,7 @@ void main()
             name[2] = data[n + 6];
             name[3] = data[n + 7];
             n += size;
-            if (!strncmp(name, mdat, 4)) { // ищем мдат блок
+            if (!strncmp((char*)name, (char*)mdat, 4)) { // ищем мдат блок
                 flag = false;
                 n -= size; // возвращаемся к началу мдат блока
             }
