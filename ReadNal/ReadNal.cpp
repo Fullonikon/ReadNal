@@ -10,15 +10,33 @@
 using namespace std;
 
 
-int blocktoint(char* input, int n) {
-    char b[4];
+int blocktoint(char* input, int startPosition) {  // парсинг размера
     string strres;
     stringstream stream;
-    for (int i = n; i < n + 4; i++) {
-        b[i - n] = input[i];
+    for (int i = startPosition; i < startPosition + 4; i++) {
         if (input[i] < 0) {
             stream << std::setw(2) << std::setfill('0') << hex
-                << (int)input[i] + 256;  // как тут получается отрицательное значение? 
+                << (int)input[i] + 256;  // при получении отрицательного значения происходит неправильная конвертация значения
+        }
+        else {
+            stream << std::setw(2) << std::setfill('0') << hex // переводим в 16-ричное значение
+                << (int)input[i];
+        }
+    }
+    strres = stream.str();
+    int res = stoi(strres, 0, 16); // переводим результат в число
+    
+    return res;
+}
+
+int readNalType(char* input, int startPosition) // для чтения типа нал юнита (нужна определённая часть байта)
+{
+    string strres;
+    stringstream stream;
+    for (int i = startPosition; i < startPosition + 1; i++) { // не + 4, а + 1 
+        if (input[i] < 0) {
+            stream << std::setw(2) << std::setfill('0') << hex
+                << (int)input[i] + 256;
         }
         else {
             stream << std::setw(2) << std::setfill('0') << hex
@@ -26,69 +44,15 @@ int blocktoint(char* input, int n) {
         }
     }
     strres = stream.str();
+    strres = strres[1]; // тут лежит тип
     int res = stoi(strres, 0, 16);
-    
+
     return res;
-}
-
-string readNal(string input, int startPosition, int &size) // считывание блока нал из входного потока с введённого символа
-{                                                          // размер для вывода
-    string nal;
-    string nalSize;
-    for (int i = startPosition; i < startPosition + 8; i++)
-    {
-        nalSize += input[i];
-    }
-    size = stoi(nalSize, 0, 16)*2; // умножить на два потому что бит это два символа 
-    nal += nalSize;
-    nal = input.substr(startPosition, size+8);
-
-
-    return nal;
 }
 
 void main()
 {
-    //unsigned char x;
-    //std::ifstream input("C:/Users/ami/Desktop/cats/segment1.fmp4", std::ios::binary); // ввод
-    //stringstream stream;
-    //input >> std::noskipws;
-    //char pep[10];
-    //if (input.is_open()) {
-    //    int k = 0;
-    //    while (input >> x) { // чтение данных
-    //        stream << std::hex << std::setw(2) << std::setfill('0')
-    //            << (int)x;
-    //        //pep[k] = x;
-    //        k++;
-    //    }
-    //}
-    //else
-    //{
-    //    return;
-    //}
-
-    //string f;
-    //vector<uint8_t> data;
-    //input.read(pep, 1);
-    //string nalTmp;
-    //f = stream.str().substr(stream.str().find("6d646174")+8); // поиск начала
-    //int mdatSize = stoi(stream.str().substr(stream.str().find("6d646174") - 8, 8), 0, 16);
-
-    //int curPos = 0;
-    //int counter = 0;
-    //while (curPos < mdatSize)
-    //{
-    //    counter++;
-    //    int size;
-    //    nalTmp = readNal(f, curPos, size);
-    //    char nalType = nalTmp[9]; // здесь лежит тип
-    //    cout << "Nal Unit #" << counter << ": size - " << size / 2 << " bytes, type - " << nalType << "\n";
-    //    curPos += size + 8;
-    //}
-
-
-    std::ifstream is("C:/Users/ami/Desktop/cats/segment1.fmp4", ios::binary); // C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence4.m4s
+    std::ifstream is("C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence3.m4s", ios::binary); // C:/Users/ami/Desktop/cats/segment3.fmp4
     if (is.is_open()) {
         // get length of file:
         is.seekg(0, is.end); // ставим маркер в конец 
@@ -98,7 +62,7 @@ void main()
         char* data = new char[length];
 
         std::cout << "Reading " << length << " characters... ";
-        // read data as a block:
+        // читаем данные
         is.read(data, length);
 
         if (is)
@@ -107,7 +71,6 @@ void main()
             std::cout << "error: only " << is.gcount() << " could be read \n";
         is.close();
 
-        // 6d646174 == 109 100 97 116 == mdat
         int n = 0;
         char name[4];
         char mdat[4] = { 'm', 'd', 'a', 't' };
@@ -119,18 +82,24 @@ void main()
             name[2] = data[n + 6];
             name[3] = data[n + 7];
             n += size;
-            if (!strncmp(name, mdat, 4)) flag = false;
+            if (!strncmp(name, mdat, 4)) { // ищем мдат блок
+                flag = false;
+                n -= size; // возвращаемся к началу мдат блока
+            }
         }
 
-        // ...buffer contains the entire file...
+    int counter = 0;
+    n += 8; // переводим на начало первого нал юнита
+    while (n < length)
+    {
+        counter++;
+        int size = blocktoint(data, n); // читаем размер 
+        int nalType = readNalType(data, n + 4); // читаем тип юнита
+        cout << "Nal Unit #" << counter << ": size - " << size << " bytes, type - " << nalType << "\n";
+        n += size + 4;
+    }
 
         delete[] data;
     }
 
-
 }
-
-
-//NAL_UNIT_NUMBER - NAL_UNIT_SIZE - NAL_UNIT_TYPE
-//std::vector<uint8_t> data
-//uin8_t* data = new uint8_t[10];
