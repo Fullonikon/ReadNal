@@ -74,7 +74,7 @@ size_t findTrun(uint8_t* input, int startPosition, size_t size) // заходи�
 
 int main()
 {
-	std::ifstream offset("C:/Users/ami/Desktop/cats/segment1.fmp4", std::ios::binary); // C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence4.m4s
+	std::ifstream offset("C:/Users/ami/Desktop/Test_zapis_34_original_iso_fragmented/fileSequence4.m4s", std::ios::binary); // C:/Users/ami/Desktop/cats/segment1.fmp4
 	if (!offset.is_open())
 	{
 		std::cout << "Couldn't open file" << std::endl;
@@ -138,7 +138,7 @@ int main()
 		end = n + mdatSize; // если нет второго тирана то щупаем весь мдат
 	}
 	else {
-		end = n + ofset;
+		end = ofset;
 	}
 	n += 8; // переводим на начало первого нал юнита
 	
